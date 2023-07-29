@@ -51,7 +51,8 @@ endif
 OPERATOR_SDK_VERSION ?= v1.31.0
 
 # Image URL to use all building/pushing image targets
-IMG ?= controller:latest
+IMG ?= ghcr.io/raynigon/auto-reload-operator:v$(VERSION)
+
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.26.0
 
@@ -255,8 +256,6 @@ else
 OPM = $(shell which opm)
 endif
 endif
-
-IMG ?= ghcr.io/raynigon/auto-reload-operator:v$(VERSION)
 
 # A comma-separated list of bundle images (e.g. make catalog-build BUNDLE_IMGS=example.com/operator-bundle:v0.1.0,example.com/operator-bundle:v0.2.0).
 # These images MUST exist in a registry and be pull-able.
