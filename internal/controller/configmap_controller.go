@@ -147,6 +147,10 @@ func restartPods(ctx context.Context, r client.Client, deploymentId types.Namesp
 		return nil
 	}
 	// Restart the pods by updating the restart annotation
-	deployment.Spec.Template.Annotations["auto-reload.raynigon.com/restartedAt"] = time.Now().Format(time.RFC3339)
+	logger.Info("Restarting Deployment", "deployment", deploymentId.String())
+	if deployment.Spec.Template.ObjectMeta.Annotations == nil {
+		deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{}
+	}
+	deployment.Spec.Template.ObjectMeta.Annotations["auto-reload.raynigon.com/restartedAt"] = time.Now().Format(time.RFC3339)
 	return r.Update(ctx, &deployment)
 }

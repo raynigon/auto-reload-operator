@@ -76,8 +76,8 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// Fetch the config map entity from the repository
 	entity, err := repo.FindById(configMapId)
 	if err != nil {
-		logger.Error(err, "Unable to find config map", "deployment", req.NamespacedName.String(), "configMap", configMapId.String())
-		return ctrl.Result{RequeueAfter: 60 * time.Second}, nil
+		logger.Error(err, "Unable to find config map entity", "deployment", req.NamespacedName.String(), "configMap", configMapId.String())
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
 	// Check if deployment is already in the list, if so we don't need to do anything

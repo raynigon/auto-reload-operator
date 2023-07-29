@@ -1,12 +1,17 @@
-apiVersion: v1
-group: apps
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: demo-deployment
   annotations:
     auto-reload.raynigon.com/configMap: "default/demo-configmap"
 spec:
+  selector:
+    matchLabels:
+      app: demo
   template:
+    metadata:
+      labels:
+        app: demo
     spec:
       containers:
       - name: bash
