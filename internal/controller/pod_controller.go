@@ -60,16 +60,16 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	value, ok := pod.ObjectMeta.Labels["auto-reload.raynigon.com/configMap"]
-	// If the label is not set, we don't care about this pod
+	value, ok := pod.ObjectMeta.Annotations["auto-reload.raynigon.com/configMap"]
+	// If the annotation is not set, we don't care about this pod
 	if !ok {
 		return ctrl.Result{}, nil
 	}
 
-	// Convert label value to NamespacedName
+	// Convert annotation value to NamespacedName
 	configMapId, err := stringToNamespacedName(value)
 	if err != nil {
-		logger.Error(err, "Invalid label format", "pod", req.NamespacedName.String(), "label", value)
+		logger.Error(err, "Invalid annotation format", "pod", req.NamespacedName.String(), "annotation", value)
 		return ctrl.Result{}, nil
 	}
 
