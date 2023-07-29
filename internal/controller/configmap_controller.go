@@ -64,7 +64,7 @@ func (r *ConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	// Handle deleted
+	// Handle deleted config map
 	if !exists {
 		err := repo.Delete(req.NamespacedName)
 		if err != nil {
@@ -75,7 +75,7 @@ func (r *ConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
-	// Handle created
+	// Handle config map not in repository
 	entity, err := repo.FindById(req.NamespacedName)
 	if err != nil {
 		entity = service.ConfigMapEntity{
@@ -90,6 +90,7 @@ func (r *ConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}
 
+	// Generate Hash for config map data (string and binary)
 	currentDataHash := hashData(configMap)
 	// Exit if the hash did not change
 	if entity.DataHash == currentDataHash {
