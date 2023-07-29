@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	stdErrors "errors"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -25,7 +26,7 @@ func getResource(ctx context.Context, r client.Reader, name client.ObjectKey, ob
 func stringToNamespacedName(value string) (types.NamespacedName, error) {
 	parts := strings.Split(value, "/")
 	if len(parts) != 2 {
-		return types.NamespacedName{}, errors.New("invalid format")
+		return types.NamespacedName{}, stdErrors.New("invalid format")
 	}
 	return types.NamespacedName{
 		Namespace: parts[0],
