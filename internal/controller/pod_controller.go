@@ -66,19 +66,31 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, nil
 	}
 
+	// Convert label value to NamespacedName
 	configMapId, err := stringToNamespacedName(value)
 	if err != nil {
 		logger.Error(err, "Invalid label format", "pod", req.NamespacedName.String(), "label", value)
 		return ctrl.Result{}, nil
 	}
 
+	// Fetch the config map entity from the repository
 	entity, err := repo.FindById(configMapId)
 	if err != nil {
 		logger.Error(err, "Unable to find config map", "pod", req.NamespacedName.String(), "configMap", configMapId.String())
 		return ctrl.Result{RequeueAfter: 60 * time.Second}, nil
 	}
 
+	// Check if pod is already in the list, if so we don't need to do anything
+	for _, pod := range entity.Pods {
+		if pod == req.NamespacedName {
+			return ctrl.Result{}, nil
+		}
+	}
+
+	// Add the pod to the config map entity
 	entity.Pods = append(entity.Pods, req.NamespacedName)
+
+	// Save the modified config map entity
 	entity, err = repo.Save(entity)
 	if err != nil {
 		logger.Error(err, "Unable to save config map entity", "pod", req.NamespacedName.String(), "configMap", configMapId.String())
