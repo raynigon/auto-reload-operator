@@ -3,5 +3,5 @@ kind: Kustomization
 ## Append samples you want in your CSV to this file as resources ##
 resources:
 - sample_configmap.yaml
-- sample_pod.yaml
+- sample_deployment.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

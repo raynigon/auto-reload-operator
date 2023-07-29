@@ -87,18 +87,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controller.PodReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Pod")
-		os.Exit(1)
-	}
 	if err = (&controller.ConfigMapReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ConfigMap")
+		os.Exit(1)
+	}
+	if err = (&controller.DeploymentReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Deployment")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

@@ -7,14 +7,14 @@ import (
 )
 
 type ConfigMapEntity struct {
-	Id       types.NamespacedName
-	Pods     []types.NamespacedName
-	DataHash string
+	Id          types.NamespacedName
+	Deployments []types.NamespacedName
+	DataHash    string
 }
 
 type ConfigMapRepository interface {
 	FindById(id types.NamespacedName) (ConfigMapEntity, error)
-	FindByPod(id types.NamespacedName) ([]ConfigMapEntity, error)
+	FindByDeployment(id types.NamespacedName) ([]ConfigMapEntity, error)
 	Save(entity ConfigMapEntity) (ConfigMapEntity, error)
 	Delete(id types.NamespacedName) error
 }
@@ -35,11 +35,11 @@ func (r InMemoryConfigMapRepository) FindById(id types.NamespacedName) (ConfigMa
 	return entity, nil
 }
 
-func (r InMemoryConfigMapRepository) FindByPod(id types.NamespacedName) ([]ConfigMapEntity, error) {
+func (r InMemoryConfigMapRepository) FindByDeployment(id types.NamespacedName) ([]ConfigMapEntity, error) {
 	var entities []ConfigMapEntity
 	for _, entity := range r.entities {
-		for _, pod := range entity.Pods {
-			if pod == id {
+		for _, deployment := range entity.Deployments {
+			if deployment == id {
 				entities = append(entities, entity)
 			}
 		}

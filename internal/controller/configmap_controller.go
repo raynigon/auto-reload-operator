@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/raynigon/auto-reload-operator/internal/service"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -78,9 +79,9 @@ func (r *ConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	entity, err := repo.FindById(req.NamespacedName)
 	if err != nil {
 		entity = service.ConfigMapEntity{
-			Id:       req.NamespacedName,
-			Pods:     []types.NamespacedName{},
-			DataHash: "",
+			Id:          req.NamespacedName,
+			Deployments: []types.NamespacedName{},
+			DataHash:    "",
 		}
 		entity, err = repo.Save(entity)
 		if err != nil {
@@ -96,10 +97,10 @@ func (r *ConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// Restart all pods that reference this config map
-	for _, pod := range entity.Pods {
-		err := restartPod(ctx, r.Client, pod)
+	for _, deployment := range entity.Deployments {
+		err := restartPods(ctx, r.Client, deployment)
 		if err != nil {
-			logger.Error(err, "Unable to restart Pod", "pod", pod.String())
+			logger.Error(err, "Unable to restart deployment", "deployment", deployment.String())
 			return ctrl.Result{}, err
 		}
 	}
@@ -133,19 +134,19 @@ func hashData(cm corev1.ConfigMap) string {
 	return base64.StdEncoding.EncodeToString(hash)
 }
 
-func restartPod(ctx context.Context, r client.Client, id types.NamespacedName) error {
+func restartPods(ctx context.Context, r client.Client, deploymentId types.NamespacedName) error {
 	logger := log.FromContext(ctx)
-	var pod corev1.Pod
-	exists, err := getResource(ctx, r, id, &pod)
+	var deployment appsv1.Deployment
+	exists, err := getResource(ctx, r, deploymentId, &deployment)
 	if err != nil {
-		logger.Error(err, "Unable to fetch Pod", "pod", id.String())
+		logger.Error(err, "Unable to fetch Deployment", "pod", deploymentId.String())
 		return err
 	}
 	if !exists {
-		logger.Info("Pod does not exist", "pod", pod.String())
+		logger.Info("Deployment does not exist", "pod", deploymentId.String())
 		return nil
 	}
-	// Restart the pod by updating the restart annotation
-	pod.ObjectMeta.Annotations["auto-reload.raynigon.com/restartedAt"] = time.Now().Format(time.RFC3339)
-	return r.Update(ctx, &pod)
+	// Restart the pods by updating the restart annotation
+	deployment.Spec.Template.Annotations["auto-reload.raynigon.com/restartedAt"] = time.Now().Format(time.RFC3339)
+	return r.Update(ctx, &deployment)
 }

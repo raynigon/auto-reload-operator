@@ -1,0 +1,14 @@
+apiVersion: v1
+group: apps
+kind: Deployment
+metadata:
+  name: demo-deployment
+  annotations:
+    auto-reload.raynigon.com/configMap: "default/demo-configmap"
+spec:
+  template:
+    spec:
+      containers:
+      - name: bash
+        image: bash
+        args: ["sleep", "infinity"]
