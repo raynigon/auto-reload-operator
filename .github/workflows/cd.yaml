@@ -1,0 +1,90 @@
+name: Release
+on:
+  workflow_dispatch:
+
+
+jobs:
+  release:
+    name: "Create Release"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: "cd-build-${{ github.ref }}"
+      cancel-in-progress: true
+    steps:
+      ########################################################################################################################
+      ########################################### Setup ######################################################################
+      ########################################################################################################################
+      - uses: actions/checkout@v3
+      - id: cache-tools
+        name: Cache Tools
+        uses: actions/cache@v3
+        with:
+          path: bin/
+          key: ${{ runner.os }}-${{ hashFiles('Makefile') }}
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      - name: "Setup Operator SDK"
+        run: |
+          export ARCH=$(case $(uname -m) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(uname -m) ;; esac)
+          export OS=$(uname | awk '{print tolower($0)}')
+          export OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/v1.27.0
+          curl -LO ${OPERATOR_SDK_DL_URL}/operator-sdk_${OS}_${ARCH}
+          chmod +x operator-sdk_${OS}_${ARCH}
+          sudo mv operator-sdk_${OS}_${ARCH} /usr/local/bin/operator-sdk
+      - name: Get current date
+        id: params
+        run: |
+          echo "latest=$(git describe --tags `git rev-list --tags --max-count=1`)" >> $GITHUB_OUTPUT
+          echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+          echo "version=$(cat version.txt)" >> $GITHUB_OUTPUT
+      ########################################################################################################################
+      ########################################### Build ######################################################################
+      ########################################################################################################################
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          registry: "ghcr.io"
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: "Build Controller"
+        run: make release "IMG=ghcr.io/brose-ebike/postgres-operator:v${{ steps.params.outputs.version }}"
+      ########################################################################################################################
+      ########################################### Release#####################################################################
+      ########################################################################################################################
+      - id: content
+        name: Create Release Content
+        uses: raynigon/release-documentation@main
+        with:
+          token: "${{ secrets.GITHUB_TOKEN }}"
+          latest: "${{ steps.params.outputs.latest }}"
+          templateFile: ".github/templates/release.md"
+      - name: "Github Release"
+        uses: softprops/action-gh-release@c9b46fe7aad9f02afd89b12450b780f52dacfb2d #v1
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        with:
+          tag_name: "v${{ steps.params.outputs.version }}"
+          name: "v${{ steps.params.outputs.version }}"
+          files: dist/*
+          body: ${{ steps.content.outputs.content }}
+      - name: Increment Version
+        run: python .github/scripts/increment_version.py
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          title: 'Release ${{ steps.params.outputs.version }}'
+          branch: release-${{ steps.params.outputs.version }}
+          commit-message: Release ${{ steps.params.outputs.version }} on ${{ steps.params.outputs.date }}
+          delete-branch: true
+          draft: false
+          labels: |
+            release
+          reviewers: |
+            raynigon
+            dbalucas
+
+
+

@@ -1,0 +1,79 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    name: "Build"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: "ci-build-${{ github.ref }}"
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v3
+      - id: cache-tools
+        name: Cache Tools
+        uses: actions/cache@v3
+        with:
+          path: bin/
+          key: ${{ runner.os }}-${{ hashFiles('Makefile') }}
+      - name: "Generate Resource Definitions"
+        run: |
+          make generate
+      - name: "Generate Manifests"
+        run: |
+          make manifests
+      - name: "Build Binary"
+        run: |
+          make build
+      - name: "Build Docker Image"
+        run: |
+          make docker-build
+
+  linter:
+    name: "Linter"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: "ci-linting-${{ github.ref }}"
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v3
+      - id: cache-tools
+        name: Cache Tools
+        uses: actions/cache@v3
+        with:
+          path: bin/
+          key: ${{ runner.os }}-${{ hashFiles('Makefile') }}
+      - name: "Run go fmt"
+        run: |
+          make fmt
+      - name: "Run go vet"
+        run: |
+          make vet
+      - name: "Run lint file headers"
+        run: python3 .github/scripts/lint_file_headers.py
+      - name: "Check for changes"
+        run: "git status"
+
+  tests:
+    name: "Tests"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: "ci-tests-${{ github.ref }}"
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v3
+      - id: cache-tools
+        name: Cache Tools
+        uses: actions/cache@v3
+        with:
+          path: bin/
+          key: ${{ runner.os }}-${{ hashFiles('Makefile') }}
+      - name: "Run Tests"
+        run: |
+          make test

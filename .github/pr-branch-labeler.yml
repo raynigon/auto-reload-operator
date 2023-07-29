@@ -1,0 +1,11 @@
+feature:
+  head: "feature/*"
+
+bug:
+  head: "bugfix/*"
+
+documentation:
+  head: "docs/*"
+
+housekeeping:
+  head: "housekeeping/*"
