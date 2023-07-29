@@ -3,10 +3,9 @@ kind: Pod
 metadata:
   name: demo-pod
   annotations:
-    sidecar.istio.io/inject: "false"
+    auto-reload.raynigon.com/configMap: "default/demo-config"
 spec:
   containers:
   - name: bash
     image: bash
-  hostNetwork: true
-  dnsPolicy: Default
+    args: ["sleep", "infinity"]

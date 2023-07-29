@@ -23,7 +23,9 @@ type InMemoryConfigMapRepository struct {
 	entities map[types.NamespacedName]ConfigMapEntity
 }
 
-var Repository ConfigMapRepository = InMemoryConfigMapRepository{}
+var Repository ConfigMapRepository = InMemoryConfigMapRepository{
+	entities: make(map[types.NamespacedName]ConfigMapEntity),
+}
 
 func (r InMemoryConfigMapRepository) FindById(id types.NamespacedName) (ConfigMapEntity, error) {
 	entity, ok := r.entities[id]
