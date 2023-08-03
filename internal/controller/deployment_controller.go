@@ -23,6 +23,7 @@ import (
 	"github.com/raynigon/auto-reload-operator/internal/service"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -57,7 +58,8 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 	if !exists {
-		return ctrl.Result{}, nil
+		err := deleteDeployment(repo, req.NamespacedName)
+		return ctrl.Result{}, err
 	}
 
 	value, ok := deployment.ObjectMeta.Annotations["auto-reload.raynigon.com/configMap"]
@@ -105,4 +107,25 @@ func (r *DeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&appsv1.Deployment{}).
 		Complete(r)
+}
+
+func deleteDeployment(repo service.ConfigMapRepository, deploymentId types.NamespacedName) error {
+	entities, err := repo.FindByDeployment(deploymentId)
+	if err != nil {
+		return err
+	}
+	for _, entity := range entities {
+		for i, deployment := range entity.Deployments {
+			if deployment == deploymentId {
+				entity.Deployments = remove(entity.Deployments, i)
+				break
+			}
+		}
+		repo.Save(entity)
+	}
+	return nil
+}
+
+func remove(slice []types.NamespacedName, s int) []types.NamespacedName {
+	return append(slice[:s], slice[s+1:]...)
 }
