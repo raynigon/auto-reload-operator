@@ -52,14 +52,24 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	logger := log.FromContext(ctx)
 	repo := service.Repository
 
+	// #region get resource
 	var deployment appsv1.Deployment
 	exists, err := getResource(ctx, r, req.NamespacedName, &deployment)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+	// #endregion
+
+	// #region handle deleted resource
 	if !exists {
 		err := deleteDeployment(repo, req.NamespacedName)
 		return ctrl.Result{}, err
+	}
+	// #endregion
+
+	// #region check for annotation
+	if deployment.ObjectMeta.Annotations == nil {
+		return ctrl.Result{}, nil
 	}
 
 	value, ok := deployment.ObjectMeta.Annotations["auto-reload.raynigon.com/configMap"]
@@ -67,6 +77,9 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if !ok {
 		return ctrl.Result{}, nil
 	}
+	// #endregion
+
+	// #region get annotation value
 
 	// Convert annotation value to NamespacedName
 	configMapId, err := stringToNamespacedName(value)
@@ -74,6 +87,9 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		logger.Error(err, "Invalid annotation format", "deployment", req.NamespacedName.String(), "annotation", value)
 		return ctrl.Result{}, nil
 	}
+	// #endregion
+
+	// #region find config map in database
 
 	// Fetch the config map entity from the repository
 	entity, err := repo.FindById(configMapId)
@@ -81,6 +97,9 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		logger.Error(err, "Unable to find config map entity", "deployment", req.NamespacedName.String(), "configMap", configMapId.String())
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
+	// #endregion
+
+	// #region check if deployment is already present
 
 	// Check if deployment is already in the list, if so we don't need to do anything
 	for _, deployment := range entity.Deployments {
@@ -88,6 +107,9 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return ctrl.Result{}, nil
 		}
 	}
+	// #endregion
+
+	// #region add deployment dependency to config map entity
 
 	// Add the deployment to the config map entity
 	entity.Deployments = append(entity.Deployments, req.NamespacedName)
@@ -98,6 +120,7 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		logger.Error(err, "Unable to save config map entity", "deployment", req.NamespacedName.String(), "configMap", configMapId.String())
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
+	// #endregion
 
 	return ctrl.Result{}, nil
 }
