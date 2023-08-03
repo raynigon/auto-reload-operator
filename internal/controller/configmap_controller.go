@@ -57,13 +57,16 @@ func (r *ConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	logger := log.FromContext(ctx)
 	repo := service.Repository
 
+	// #region get resource
 	var configMap corev1.ConfigMap
 	exists, err := getResource(ctx, r, req.NamespacedName, &configMap)
 	if err != nil {
 		logger.Error(err, "Unable to fetch ConfigMap", "configMap", req.NamespacedName.String())
 		return ctrl.Result{}, err
 	}
+	// #endregion
 
+	// #region handle deleted resource
 	// Handle deleted config map
 	if !exists {
 		err := repo.Delete(req.NamespacedName)
@@ -74,7 +77,9 @@ func (r *ConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		logger.Info("Deleted ConfigMap", "database", req.NamespacedName.String())
 		return ctrl.Result{}, nil
 	}
+	// #endregion
 
+	// #region find config map in database
 	// Handle config map not in repository
 	entity, err := repo.FindById(req.NamespacedName)
 	if err != nil {
@@ -89,14 +94,18 @@ func (r *ConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, err
 		}
 	}
+	// #endregion
 
+	// #region create and compare hash
 	// Generate Hash for config map data (string and binary)
 	currentDataHash := hashData(configMap)
 	// Exit if the hash did not change
 	if entity.DataHash == currentDataHash {
 		return ctrl.Result{}, nil
 	}
+	// #endregion
 
+	// #region update deployments
 	// Restart all pods that reference this config map
 	for _, deployment := range entity.Deployments {
 		err := restartPods(ctx, r.Client, deployment)
@@ -105,7 +114,9 @@ func (r *ConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, err
 		}
 	}
+	// #endregion
 
+	// #region update entity
 	// Update the data hash in the entity and save it
 	entity.DataHash = currentDataHash
 	entity, err = repo.Save(entity)
@@ -113,6 +124,8 @@ func (r *ConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		logger.Error(err, "Unable to save ConfigMapEntity", "configMap", req.NamespacedName.String())
 		return ctrl.Result{}, err
 	}
+
+	// #endregion
 
 	return ctrl.Result{}, nil
 }
