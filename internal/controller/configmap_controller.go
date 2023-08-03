@@ -46,13 +46,11 @@ type ConfigMapReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the ConfigMap object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.14.1/pkg/reconcile
+// The Reconcile method will be called for each config map that is created or updated
+// When the config map is referenced by a deployment, the deployment will be restarted
 func (r *ConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 	repo := service.Repository
@@ -67,6 +65,7 @@ func (r *ConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// #endregion
 
 	// #region handle deleted resource
+
 	// Handle deleted config map
 	if !exists {
 		err := repo.Delete(req.NamespacedName)
@@ -80,6 +79,7 @@ func (r *ConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// #endregion
 
 	// #region find config map in database
+
 	// Handle config map not in repository
 	entity, err := repo.FindById(req.NamespacedName)
 	if err != nil {
@@ -97,6 +97,7 @@ func (r *ConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// #endregion
 
 	// #region create and compare hash
+
 	// Generate Hash for config map data (string and binary)
 	currentDataHash := hashData(configMap)
 	// Exit if the hash did not change
@@ -106,6 +107,7 @@ func (r *ConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// #endregion
 
 	// #region update deployments
+
 	// Restart all pods that reference this config map
 	for _, deployment := range entity.Deployments {
 		err := restartPods(ctx, r.Client, deployment)
@@ -117,6 +119,7 @@ func (r *ConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// #endregion
 
 	// #region update entity
+
 	// Update the data hash in the entity and save it
 	entity.DataHash = currentDataHash
 	entity, err = repo.Save(entity)
