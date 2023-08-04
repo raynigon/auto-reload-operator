@@ -69,7 +69,7 @@ SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
 .PHONY: all
-all: build docker-build docker-push install 
+all: manifests generate build docker-build docker-push deploy 
 
 ##@ General
 
