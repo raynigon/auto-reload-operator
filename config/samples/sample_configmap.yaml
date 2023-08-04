@@ -3,5 +3,5 @@ kind: ConfigMap
 metadata:
   name: demo-configmap
 data:
-  demo.property.1: demo-value-1
-  demo.property.2: demo-value-2
+  talk: Write your Own K8s Operator
+  conference: Froscon

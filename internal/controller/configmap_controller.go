@@ -104,6 +104,7 @@ func (r *ConfigMapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if entity.DataHash == currentDataHash {
 		return ctrl.Result{}, nil
 	}
+	logger.Info("Data hash changed, Current=" + currentDataHash + " Previous=" + entity.DataHash)
 	// #endregion
 
 	// #region update deployments
